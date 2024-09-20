@@ -30,6 +30,8 @@ Specifically, figuring out that I should subclass the EDIT child to get keyboard
 I don't presume to say that I did it "properly", but I found a way that works.
 
 ### Due credits
+Probably no need to mention these because it's MS docs but if someone finds it helpful...
+
 https://github.com/MicrosoftDocs/win32/blob/docs/desktop-src/Controls/use-a-multiline-edit-control.md  
 https://learn.microsoft.com/en-us/windows/win32/controls/subclass-a-combo-box 
 https://learn.microsoft.com/en-us/windows/win32/learnwin32/managing-application-state-
