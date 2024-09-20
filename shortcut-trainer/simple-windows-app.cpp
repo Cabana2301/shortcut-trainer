@@ -92,9 +92,9 @@ private:
 		}
 		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override {
 			switch (uMsg) {
+			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 				if (!latest_command.empty()) {
-					//if (wParam == 0x47 && (GetKeyState(VK_CONTROL) & 0x8000)) { // Ctrl+G
 					if (key_combinations[selected_combo].eval(wParam)) {
 						auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(clk::now() - measurement_start);
 						auto t = std::div(dur.count(), std::uint64_t(1000));
@@ -125,7 +125,7 @@ private:
 					measurement_start = clk::now();
 				}
 
-				break;
+				return 0;
 			}
 			return CallWindowProc(m_origFuncP, m_hwnd, uMsg, wParam, lParam);
 		}
@@ -164,7 +164,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	myWindow.Create(L"Shortcut Trainer",
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		0,
-		CW_USEDEFAULT, CW_USEDEFAULT, 600, 800);
+		CW_USEDEFAULT, CW_USEDEFAULT, 850, 600);
 	MSG msg;
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
@@ -178,7 +178,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 LRESULT MyWindow::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam)
 {
-	static TCHAR lpszLatin[] =
+	static TCHAR lpszHello[] =
 		L"Press Any Key to start\r\n\r\n"
 		L"Put the shortcuts that you want to practice in input.txt\r\n"
 		L"You can see the list of key names in virtual-keys.txt\r\n"
@@ -210,8 +210,15 @@ LRESULT MyWindow::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam)
 		editControl.setOrigFuncP(reinterpret_cast<WNDPROC>(origFunc));
 
 		// Add text to the window. 
-		SendMessage(editControl.Window(), WM_SETTEXT, 0, (LPARAM)lpszLatin);
+		SendMessage(editControl.Window(), WM_SETTEXT, 0, (LPARAM)lpszHello);
 		SendMessage(editControl.Window(), EM_SETREADONLY, TRUE, 0);
+
+		auto hFont = CreateFont(20, 0, 0, 0,
+			FW_SEMIBOLD, FALSE, FALSE, FALSE,
+			ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+			CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_DONTCARE, nullptr);
+		SendMessage(editControl.Window(), WM_SETFONT, reinterpret_cast<WPARAM>(hFont), TRUE);
+
 		return 0;
 	}
 
