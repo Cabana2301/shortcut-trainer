@@ -8,6 +8,9 @@
 #include <unordered_map>
 #include <random>
 
+using namespace std::chrono_literals;
+using namespace std::string_literals;
+
 struct ShortcutRequirement {
 	bool alt = false;
 	bool shift = false;
@@ -96,12 +99,9 @@ private:
 			case WM_KEYDOWN:
 				if (!latest_command.empty()) {
 					if (key_combinations[selected_combo].eval(wParam)) {
-						auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(clk::now() - measurement_start);
-						auto t = std::div(dur.count(), std::uint64_t(1000));
-						latest_command += L"took " +
-							std::to_wstring(t.quot) + L"." +
-							std::to_wstring(t.rem) + L" sec\r\n\r\n";
-						display_text = latest_command + display_text;
+						auto dur = std::chrono::duration_cast<millisec>(clk::now() - measurement_start);
+						latest_command += L"took " + millisec_to_fraction(dur) + L" sec\r\n\r\n";
+						display_text = latest_command + add_to_stats(dur);
 						select_combo();
 						SendMessage(m_hwnd, WM_SETTEXT, 0, (LPARAM)(latest_command + L"\r\n" + display_text).c_str());
 						measurement_start = clk::now();
@@ -135,9 +135,31 @@ private:
 		}
 
 	private:
+		using millisec = std::chrono::milliseconds;
+
 		void select_combo() {
 			selected_combo = get_random(re);
 			latest_command = key_combinations[selected_combo].description + L"\r\n";
+		}
+
+		std::wstring millisec_to_fraction(millisec dur) {
+			auto t = std::div(dur.count(), std::uint64_t(1000));
+			return std::to_wstring(t.quot) + L"."s + std::to_wstring(t.rem);
+		}
+
+		std::wstring add_to_stats(millisec dur) {
+			if (dur > 20s) {
+				// user took a break, exclude from statistics
+			}
+			else {
+				total_duration_stat += dur;
+				++combo_counter;
+				avg_duration = total_duration_stat / combo_counter;
+			}
+			auto time_playing = std::chrono::duration_cast<millisec>(clk::now() - play_start);
+			return L"Average duration: "s + millisec_to_fraction(avg_duration) + L" sec\r\n"s +
+				L"Number of combos: "s + std::to_wstring(combo_counter) + L"\r\n"s +
+				L"Time playing: "s + millisec_to_fraction(time_playing) + L" sec\r\n"s;
 		}
 	private:
 		using clk = std::chrono::steady_clock;
@@ -145,10 +167,15 @@ private:
 		std::wstring display_text;
 		std::wstring latest_command;
 		std::chrono::time_point<clk> measurement_start;
+		const std::chrono::time_point<clk> play_start = clk::now();
 		std::vector<ShortcutRequirement> key_combinations;
 		std::default_random_engine re;
 		std::uniform_int_distribution<size_t> get_random;
 		int selected_combo = 0;
+		int combo_counter = 0;
+		millisec avg_duration = 0ms;
+		millisec total_duration_stat = 0ms;
+
 	};
 
 	MyEditControl editControl;
