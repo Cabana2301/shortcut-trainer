@@ -78,6 +78,7 @@ void readShortcutFile(std::vector<ShortcutRequirement>* out) {
 	}
 }
 
+constexpr bool virtual_key_code_hint = false;
 
 class MyWindow : public BaseWindow<MyWindow>
 {
@@ -97,6 +98,11 @@ private:
 			switch (uMsg) {
 			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
+				// if the previous state is non-zero, ignore the auto-repeated messages
+				auto was_pressed = lParam & 0x40000000;
+				if (was_pressed)
+					return 0;
+
 				if (!latest_command.empty()) {
 					if (key_combinations[selected_combo].eval(wParam)) {
 						auto dur = std::chrono::duration_cast<millisec>(clk::now() - measurement_start);
@@ -106,7 +112,7 @@ private:
 						SendMessage(m_hwnd, WM_SETTEXT, 0, (LPARAM)(latest_command + L"\r\n" + display_text).c_str());
 						measurement_start = clk::now();
 					}
-					else {
+					else if (virtual_key_code_hint) {
 						std::wostringstream display_stream;
 						display_stream << std::hex << wParam
 							<< L"  "
@@ -119,7 +125,8 @@ private:
 				else {
 					readShortcutFile(&key_combinations);
 					re.seed(std::random_device{}());
-					get_random.param(decltype(get_random)::param_type{ 0 , key_combinations.size() - 1 });
+					get_random_param random_range{ 0 , key_combinations.size() - 1 };
+					get_random.param(random_range);
 					select_combo();
 					SendMessage(m_hwnd, WM_SETTEXT, 0, (LPARAM)(latest_command + L"\r\n" + display_text).c_str());
 					measurement_start = clk::now();
@@ -138,7 +145,7 @@ private:
 		using millisec = std::chrono::milliseconds;
 
 		void select_combo() {
-			selected_combo = get_random(re);
+			selected_combo = static_cast<int>(get_random(re));
 			latest_command = key_combinations[selected_combo].description + L"\r\n";
 		}
 
@@ -171,6 +178,7 @@ private:
 		std::vector<ShortcutRequirement> key_combinations;
 		std::default_random_engine re;
 		std::uniform_int_distribution<size_t> get_random;
+		using get_random_param = decltype(get_random)::param_type;
 		int selected_combo = 0;
 		int combo_counter = 0;
 		millisec avg_duration = 0ms;
