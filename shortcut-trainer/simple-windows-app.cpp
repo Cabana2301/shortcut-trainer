@@ -196,10 +196,17 @@ PCWSTR  MyWindow::ClassName() const {
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MyWindow myWindow;
+
+	constexpr int width = 850;
+	constexpr int height = 600;
+	RECT desktopRect{};
+	GetClientRect(GetDesktopWindow(), &desktopRect);
+	auto x = desktopRect.right / 2 - width / 2;
+	auto y = desktopRect.bottom / 2 - height / 2;
 	myWindow.Create(L"Shortcut Trainer",
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		0,
-		CW_USEDEFAULT, CW_USEDEFAULT, 850, 600);
+		x, y, width, height);
 	MSG msg;
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
